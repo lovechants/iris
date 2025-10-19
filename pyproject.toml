@@ -9,5 +9,6 @@ dependencies = [
     "pyobjc-framework-metal>=11.1",
     "pyobjc-framework-metalkit>=11.1",
     "pyobjc-framework-metalperformanceshaders>=11.1",
+    "pytest>=8.4.2",
     "typing>=3.10.0.0",
 ]

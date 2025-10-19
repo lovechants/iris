@@ -34,5 +34,8 @@ class DType(Enum):
             raise ValueError(f"Unsupported dtype: {dtype}")
         return type_map[np_type]
 
+    def to_numpy(self) -> np.dtype:
+        return np.dtype(self.numpy_dtype)
+
 def get_alignment(dtype: DType) -> int:
     return max(dtype.size, 4)
