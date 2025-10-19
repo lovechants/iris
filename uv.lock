@@ -12,6 +12,49 @@ wheels = [
 ]
 
 [[package]]
+name = "django"
+version = "1.10.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/09/17/13a0cd29f603a4a51b06f7cdc9466fd7bfc48aa20ae2aa80f79d3ad9ba7d/Django-1.10.8.tar.gz", hash = "sha256:d4ef83bd326573c00972cb9429beb396d210341a636e4b816fc9b3f505c498bb", size = 7739226, upload-time = "2017-09-05T15:31:58.221Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/9f/2c20639ac635a83123ddffd91ba15001cb0d04e74fbb08f31fb57e490dab/Django-1.10.8-py2.py3-none-any.whl", hash = "sha256:ffdc7e938391ae3c2ee8ff82e0b4444e4e6bb15c99d00770285233d42aaf33d6", size = 6834486, upload-time = "2017-09-05T15:31:48.077Z" },
+]
+
+[[package]]
+name = "django-classy-tags"
+version = "0.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e0/64/a4a72d2bd04848864e7c39b30a3f44be05c328a7f7a4b6406369ad21daac/django-classy-tags-0.8.0.tar.gz", hash = "sha256:792f9161d0e22d55b4fab6fc297bab8ab072ffaa3075b227613a6d8473624db8", size = 17911, upload-time = "2016-08-28T04:09:20.712Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/7d/3d13d3303bd6118a910c72709d6892ffabe7e2df5e3353f722409348a032/django_classy_tags-0.8.0-py2.py3-none-any.whl", hash = "sha256:f6d12f5a4df3e387795a0d9ef2836af389cae9a1fbebda035dac043d4722b1f7", size = 22462, upload-time = "2016-08-28T04:09:23.05Z" },
+]
+
+[[package]]
+name = "django-sekizai"
+version = "0.10.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django-classy-tags" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/82/ce/71e166afbe3299e98d3097b06c270ea10c28bf25b0dc846244f54303779f/django-sekizai-0.10.0.tar.gz", hash = "sha256:39c5d16ad694aa78278ca84fdc7b9f953ebcf94e2fc95b68c875d02014303260", size = 18731, upload-time = "2016-08-28T04:26:47.507Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0e/e9/b86b44a824546cfbb3481386764a0a5351de75947901107ee64a5a100254/django_sekizai-0.10.0-py2.py3-none-any.whl", hash = "sha256:cbd48e7be29e8cc4108476b9420d7c391fc509a504bc20b60616b116ba6ea51e", size = 19845, upload-time = "2016-08-28T04:26:50.865Z" },
+]
+
+[[package]]
+name = "foundation"
+version = "0.1.0a0.dev1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "django-sekizai" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3c/c2/244eeb1737a5998a165307c787207dffaed352ea45e2bc3c9bfec05cf5d1/foundation-0.1.0a0.dev1.tar.gz", hash = "sha256:ee9900cf0492db3388a6c2815153bc7f28009239717278fd798a0767ea1d001e", size = 50785, upload-time = "2017-02-14T22:31:12.29Z" }
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -25,6 +68,7 @@ name = "iris"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "foundation" },
     { name = "numpy" },
     { name = "pyobjc-framework-metal" },
     { name = "pyobjc-framework-metalkit" },
@@ -35,6 +79,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "foundation", specifier = ">=0.1.0a0.dev1" },
     { name = "numpy", specifier = ">=2.3.4" },
     { name = "pyobjc-framework-metal", specifier = ">=11.1" },
     { name = "pyobjc-framework-metalkit", specifier = ">=11.1" },
