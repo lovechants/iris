@@ -17,7 +17,14 @@ class DType(Enum):
         self.size = size
         self.numpy_dtype = numpy_dtype
 
-    @staticmethod 
+    """
+    TODO: Add more types: https://numpy.org/doc/stable/user/basics.types.html
+    - bool 
+    - int4 (unpack two 4-bit values from a single uint8)
+    - vector types 
+    - complex float 
+    """
+    @staticmethod
     def from_numpy(dtype: np.dtype) -> "DType":
         type_map = {
             np.float32: DType.FLOAT32,
