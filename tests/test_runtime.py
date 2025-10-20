@@ -34,21 +34,21 @@ class TestMetalRuntime:
         assert buf.ndim == 2
         assert buf.numel == 1024
 
-    @pytest.mark.xfail(reason="Download functionality is not yet implemented.")
+    #@pytest.mark.xfail(reason="Download functionality is not yet implemented.")
     def test_upload_download_float32(self, runtime):
         original = np.random.randn(256).astype(np.float32)
         metal_buf = runtime.upload(original)
         retrieved = runtime.download(metal_buf)
         np.testing.assert_array_equal(original, retrieved)
 
-    @pytest.mark.xfail(reason="Download functionality is not yet implemented.")
+    #@pytest.mark.xfail(reason="Download functionality is not yet implemented.")
     def test_upload_download_int32(self, runtime):
         original = np.arange(128, dtype=np.int32)
         metal_buf = runtime.upload(original)
         retrieved = runtime.download(metal_buf)
         np.testing.assert_array_equal(original, retrieved)
 
-    @pytest.mark.xfail(reason="Download functionality is not yet implemented.")
+    #@pytest.mark.xfail(reason="Download functionality is not yet implemented.")
     def test_upload_download_multidim(self, runtime):
         original = np.random.randn(16, 16).astype(np.float32)
         metal_buf = runtime.upload(original)
@@ -56,7 +56,7 @@ class TestMetalRuntime:
         np.testing.assert_array_equal(original, retrieved)
         assert retrieved.shape == original.shape
 
-    @pytest.mark.xfail(reason="Download functionality is not yet implemented.")
+    #@pytest.mark.xfail(reason="Download functionality is not yet implemented.")
     def test_non_contiguous_array(self, runtime):
         base = np.random.randn(10, 10).astype(np.float32)
         non_contiguous = base[::2, ::2]

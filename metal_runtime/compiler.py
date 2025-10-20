@@ -40,7 +40,8 @@ class MetalCompiler:
         self._library_cache[source_hash] = library
         return library
 
-
+    #TODO Remove the failing cache code at some point was a nice attempt to see just not supported right now
+    # Will just use in memory cache.
     def _compile_source(self, source: str, device: "Metal.MTLDevice", output_path: Path) -> "Metal.MTLLibrary":
         compilation_complete = threading.Event()
         library_result = None

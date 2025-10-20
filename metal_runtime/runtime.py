@@ -1,6 +1,6 @@
 import numpy as np
 import objc  
-from ctypes import c_void_p, cast, memmove  
+from ctypes import c_void_p, cast, memmove, POINTER, c_char  
 from typing import Optional, Tuple, List
 import Metal
 from Foundation import NSData  # <-- Added for the robust upload method
@@ -66,19 +66,39 @@ class MetalRuntime:
         return MetalBuffer(buffer, array.shape, dtype)
 
     def download(self, metal_buffer: MetalBuffer) -> np.ndarray:
-        """
-        Data from buffer->python
-        Too many complexities with output can't read the type etc, making the
-        buffer is fine but reading back from it is WIP 
-        Don't really think its a momumental need right now just a nice utility so TODO for now
-        We don't need to read back to the CPU as long as we get the kernel output anyway
-        """
-        raise NotImplementedError("Downloading back to CPU not implemented yet")
+        contents = metal_buffer.buffer.contents()
+        total_bytes = metal_buffer.size
+
+        tuple_of_bytes = contents[0:total_bytes]
+
+        all_bytes = b''.join(tuple_of_bytes)
+
+        array_flat = np.frombuffer(all_bytes, dtype=metal_buffer.dtype.to_numpy())
+        
+        return array_flat.reshape(metal_buffer.shape)
+
+    """
+    This and download have been plaguing me all day, trying ctype, PyObjC stuff and everything 
+    turns out can just use numpy numpy is so goated thank you numpy 
+    some comments to make sense of it peek -> download since its similar ideas
+    """
+    def peek(self, metal_buffer: MetalBuffer, dtype: DType, index: int = 0):
+        offset_bytes = index * dtype.size
+        contents = metal_buffer.buffer.contents()
+        
+        # Slicing returns a tuple of single-byte BYTES objects.
+        # e.g., (b'\x00', b'\xe4', b'\xc0', b'\x46')
+        tuple_of_bytes = contents[offset_bytes : offset_bytes + dtype.size]
+        
+        # Join the tuple of bytes into a single bytes object.
+        value_bytes = b''.join(tuple_of_bytes)
+        
+        return np.frombuffer(value_bytes, dtype=dtype.to_numpy())[0]
 
     def synchronize(self):
-        cmd_buffer = self.queue.commandBuffer()
-        cmd_buffer.commit()
-        cmd_buffer.waitUntilCompleted()
+            cmd_buffer = self.queue.commandBuffer()
+            cmd_buffer.commit()
+            cmd_buffer.waitUntilCompleted()
 
 def get_runtime() -> MetalRuntime:
     return MetalRuntime.get_instance()
