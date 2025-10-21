@@ -1,8 +1,6 @@
 #include <metal_stdlib>
 using namespace metal;
 
-// Just binary ops 
-
 template <typename T>
 kernel void add(
   device const T* a [[buffer(0)]],
@@ -16,7 +14,6 @@ kernel void add(
   }
 }
 
-
 template <typename T>
 kernel void sub(
   device const T* a [[buffer(0)]],
@@ -29,7 +26,6 @@ kernel void sub(
     c[tid] = a[tid] - b[tid];
   }
 }
-
 
 template <typename T>
 kernel void mul(
@@ -82,7 +78,7 @@ kernel void sigmoid(
 }
 
 template <typename T>
-kernel void tanh(
+kernel void tanh_op(
     device const T* a [[buffer(0)]],
     device T* b [[buffer(1)]],
     constant uint& n [[buffer(2)]],
@@ -94,7 +90,7 @@ kernel void tanh(
 }
 
 template <typename T>
-kernel void exp(
+kernel void exp_op(
     device const T* a [[buffer(0)]],
     device T* b [[buffer(1)]],
     constant uint& n [[buffer(2)]],
@@ -106,7 +102,7 @@ kernel void exp(
 }
 
 template <typename T>
-kernel void log(
+kernel void log_op(
     device const T* a [[buffer(0)]],
     device T* b [[buffer(1)]],
     constant uint& n [[buffer(2)]],
@@ -118,7 +114,7 @@ kernel void log(
 }
 
 template <typename T>
-kernel void sqrt(
+kernel void sqrt_op(
     device const T* a [[buffer(0)]],
     device T* b [[buffer(1)]],
     constant uint& n [[buffer(2)]],
@@ -142,7 +138,7 @@ kernel void neg(
 }
 
 template <typename T>
-kernel void abs(
+kernel void abs_op(
     device const T* a [[buffer(0)]],
     device T* b [[buffer(1)]],
     constant uint& n [[buffer(2)]],
@@ -153,43 +149,88 @@ kernel void abs(
     }
 }
 
-#define INSTANTIATE_BINARY_OP(op_name) \
-  template [[kernel]] void op_name<float>(device const float*, device const float*, device float*, constant uint&, uint); \
-  template [[kernel]] void op_name<half>(device const half*, device const half*, device half*, constant uint&, uint); \
-  template [[kernel]] void op_name<int>(device const int*, device const int*, device int*, constant uint&, uint); \
-  template [[kernel]] void op_name<uint>(device const uint*, device const uint*, device uint*, constant uint&, uint); \
-  template [[kernel]] void op_name<short>(device const short*, device const short*, device short*, constant uint&, uint); \
-  template [[kernel]] void op_name<ushort>(device const ushort*, device const ushort*, device ushort*, constant uint&, uint); \
-  template [[kernel]] void op_name<char>(device const char*, device const char*, device char*, constant uint&, uint); \
-  template [[kernel]] void op_name<uchar>(device const uchar*, device const uchar*, device uchar*, constant uint&, uint); \
+#define INSTANTIATE_BINARY_OP(op_name, type_name, type) \
+  template [[host_name(#op_name "_" #type_name)]] [[kernel]] void op_name<type>( \
+    device const type*, device const type*, device type*, constant uint&, uint);
 
+#define INSTANTIATE_UNARY_OP(op_name, type_name, type) \
+  template [[host_name(#op_name "_" #type_name)]] [[kernel]] void op_name<type>( \
+    device const type*, device type*, constant uint&, uint);
 
-#define INSTANTIATE_UNARY_FLOAT_OP(op_name) \
-    template [[kernel]] void op_name<float>(device const float*, device float*, constant uint&, uint); \
-    template [[kernel]] void op_name<half>(device const half*, device half*, constant uint&, uint);
+INSTANTIATE_BINARY_OP(add, float, float)
+INSTANTIATE_BINARY_OP(add, half, half)
+INSTANTIATE_BINARY_OP(add, int, int)
+INSTANTIATE_BINARY_OP(add, uint, uint)
+INSTANTIATE_BINARY_OP(add, short, short)
+INSTANTIATE_BINARY_OP(add, ushort, ushort)
+INSTANTIATE_BINARY_OP(add, char, char)
+INSTANTIATE_BINARY_OP(add, uchar, uchar)
 
-#define INSTANTIATE_UNARY_ALL_OP(op_name) \
-    template [[kernel]] void op_name<float>(device const float*, device float*, constant uint&, uint); \
-    template [[kernel]] void op_name<half>(device const half*, device half*, constant uint&, uint); \
-    template [[kernel]] void op_name<int>(device const int*, device int*, constant uint&, uint); \
-    template [[kernel]] void op_name<uint>(device const uint*, device uint*, constant uint&, uint); \
-    template [[kernel]] void op_name<short>(device const short*, device short*, constant uint&, uint); \
-    template [[kernel]] void op_name<ushort>(device const ushort*, device ushort*, constant uint&, uint); \
-    template [[kernel]] void op_name<char>(device const char*, device char*, constant uint&, uint); \
-    template [[kernel]] void op_name<uchar>(device const uchar*, device uchar*, constant uint&, uint);
+INSTANTIATE_BINARY_OP(sub, float, float)
+INSTANTIATE_BINARY_OP(sub, half, half)
+INSTANTIATE_BINARY_OP(sub, int, int)
+INSTANTIATE_BINARY_OP(sub, uint, uint)
+INSTANTIATE_BINARY_OP(sub, short, short)
+INSTANTIATE_BINARY_OP(sub, ushort, ushort)
+INSTANTIATE_BINARY_OP(sub, char, char)
+INSTANTIATE_BINARY_OP(sub, uchar, uchar)
 
+INSTANTIATE_BINARY_OP(mul, float, float)
+INSTANTIATE_BINARY_OP(mul, half, half)
+INSTANTIATE_BINARY_OP(mul, int, int)
+INSTANTIATE_BINARY_OP(mul, uint, uint)
+INSTANTIATE_BINARY_OP(mul, short, short)
+INSTANTIATE_BINARY_OP(mul, ushort, ushort)
+INSTANTIATE_BINARY_OP(mul, char, char)
+INSTANTIATE_BINARY_OP(mul, uchar, uchar)
 
-INSTANTIATE_BINARY_OP(add);
-INSTANTIATE_BINARY_OP(sub);
-INSTANTIATE_BINARY_OP(mul);
-INSTANTIATE_BINARY_OP(div);
+INSTANTIATE_BINARY_OP(div, float, float)
+INSTANTIATE_BINARY_OP(div, half, half)
+INSTANTIATE_BINARY_OP(div, int, int)
+INSTANTIATE_BINARY_OP(div, uint, uint)
+INSTANTIATE_BINARY_OP(div, short, short)
+INSTANTIATE_BINARY_OP(div, ushort, ushort)
+INSTANTIATE_BINARY_OP(div, char, char)
+INSTANTIATE_BINARY_OP(div, uchar, uchar)
 
-INSTANTIATE_UNARY_ALL_OP(relu);
-INSTANTIATE_UNARY_ALL_OP(neg);
-INSTANTIATE_UNARY_ALL_OP(abs);
+INSTANTIATE_UNARY_OP(relu, float, float)
+INSTANTIATE_UNARY_OP(relu, half, half)
+INSTANTIATE_UNARY_OP(relu, int, int)
+INSTANTIATE_UNARY_OP(relu, uint, uint)
+INSTANTIATE_UNARY_OP(relu, short, short)
+INSTANTIATE_UNARY_OP(relu, ushort, ushort)
+INSTANTIATE_UNARY_OP(relu, char, char)
+INSTANTIATE_UNARY_OP(relu, uchar, uchar)
 
-INSTANTIATE_UNARY_FLOAT_OP(sigmoid);
-INSTANTIATE_UNARY_FLOAT_OP(tanh);
-INSTANTIATE_UNARY_FLOAT_OP(exp);
-INSTANTIATE_UNARY_FLOAT_OP(log);
-INSTANTIATE_UNARY_FLOAT_OP(sqrt);
+INSTANTIATE_UNARY_OP(sigmoid, float, float)
+INSTANTIATE_UNARY_OP(sigmoid, half, half)
+
+INSTANTIATE_UNARY_OP(tanh_op, float, float)
+INSTANTIATE_UNARY_OP(tanh_op, half, half)
+
+INSTANTIATE_UNARY_OP(exp_op, float, float)
+INSTANTIATE_UNARY_OP(exp_op, half, half)
+
+INSTANTIATE_UNARY_OP(log_op, float, float)
+INSTANTIATE_UNARY_OP(log_op, half, half)
+
+INSTANTIATE_UNARY_OP(sqrt_op, float, float)
+INSTANTIATE_UNARY_OP(sqrt_op, half, half)
+
+INSTANTIATE_UNARY_OP(neg, float, float)
+INSTANTIATE_UNARY_OP(neg, half, half)
+INSTANTIATE_UNARY_OP(neg, int, int)
+INSTANTIATE_UNARY_OP(neg, uint, uint)
+INSTANTIATE_UNARY_OP(neg, short, short)
+INSTANTIATE_UNARY_OP(neg, ushort, ushort)
+INSTANTIATE_UNARY_OP(neg, char, char)
+INSTANTIATE_UNARY_OP(neg, uchar, uchar)
+
+INSTANTIATE_UNARY_OP(abs_op, float, float)
+INSTANTIATE_UNARY_OP(abs_op, half, half)
+INSTANTIATE_UNARY_OP(abs_op, int, int)
+INSTANTIATE_UNARY_OP(abs_op, uint, uint)
+INSTANTIATE_UNARY_OP(abs_op, short, short)
+INSTANTIATE_UNARY_OP(abs_op, ushort, ushort)
+INSTANTIATE_UNARY_OP(abs_op, char, char)
+INSTANTIATE_UNARY_OP(abs_op, uchar, uchar)

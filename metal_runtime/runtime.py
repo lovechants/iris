@@ -40,6 +40,14 @@ class MetalRuntime:
         alignment = get_alignment(dtype)
         aligned_size = ((size + alignment - 1) // alignment) * alignment
 
+        # Metal doesn't allow zero-sized buffers, allocate minimum size 
+        """
+        FAILED tests/test_ops.py::TestEdgeCases::test_empty_buffer - RuntimeError: Failed to allocate buffer of size 0
+        1 failed, 25 passed, 3 warnings in 0.53s
+        """
+        if aligned_size == 0:
+            aligned_size = alignment
+
         buffer = self.device.newBufferWithLength_options_(
             aligned_size, Metal.MTLResourceStorageModeShared
         )
