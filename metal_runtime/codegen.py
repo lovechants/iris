@@ -90,13 +90,25 @@ class MSLCodeGenerator(ast.NodeVisitor):
 
         if isinstance(target, ast.Name):
             target_name = target.id
-            if value == "tid" and self.thread_id_var is None:
-                self.thread_id_var = target_name
-                self.type_inference.set_type(name=target_name, typ="uint")
-                self.emit(f"uint {target_name} = {value};")
+            
+            if target_name in self.type_inference.var_types:
+                self.emit(f"{target_name} = {value};")
             else:
-                self.type_inference.set_type(name=target_name, typ="uint")
-                self.emit(f"uint {target_name} = {value};")
+                if value == "tid" and self.thread_id_var is None:
+                    self.thread_id_var = target_name
+                    self.type_inference.set_type(name=target_name, typ="uint")
+                    self.emit(f"uint {target_name} = {value};")
+                else:
+                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, float):
+                        var_type = "float"
+                    elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, int):
+                        var_type = "uint"
+                    else:
+                        var_type = "float"  
+                        
+                    self.type_inference.set_type(name=target_name, typ=var_type)
+                    self.emit(f"{var_type} {target_name} = {value};")
+                    
         elif isinstance(target, ast.Subscript):
             target_code = self.visit(target)
             self.emit(f"{target_code} = {value};")
