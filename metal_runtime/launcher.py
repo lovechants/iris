@@ -1,5 +1,6 @@
 import Metal
 import struct
+import numpy as np 
 from typing import Any, List, Tuple
 from metal_runtime.runtime import MetalRuntime, MetalBuffer
 from metal_runtime.compiler import get_compiler 
@@ -35,7 +36,9 @@ class KernelLauncher:
         elif isinstance(arg, int):
             data = struct.pack("i", arg)
             encoder.setBytes_length_atIndex_(data, len(data), index)
-        elif isinstance(arg, float):
+        elif isinstance(arg, float) or isinstance(arg, np.floating):
+            if isinstance(arg, np.floating):
+                arg = float(arg)
             data = struct.pack("f", arg)
             encoder.setBytes_length_atIndex_(data, len(data), index)
         else:

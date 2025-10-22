@@ -44,5 +44,10 @@ class DType(Enum):
     def to_numpy(self) -> np.dtype:
         return np.dtype(self.numpy_dtype)
 
+    @property
+    def itemsize(self) -> int:
+        """Return the size in bytes of this data type."""
+        return self.size
+
 def get_alignment(dtype: DType) -> int:
     return max(dtype.size, 4)

@@ -21,6 +21,90 @@ class MetalBuffer:
     def numel(self) -> int:
         return int(np.prod(self.shape))
 
+    # These are just tensors all over again
+    def __mul__(self, other):
+        if isinstance(other, (int, float)):
+            from metal_runtime import ops
+            return ops.mul_scalar(self, other)
+        elif isinstance(other, MetalBuffer):
+            from metal_runtime import ops
+            return ops.mul(self, other)
+    
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    
+    def __add__(self, other):
+        if isinstance(other, MetalBuffer):
+            from metal_runtime import ops
+            return ops.add(self, other)
+        elif isinstance(other, (int, float)):
+            from metal_runtime import ops
+            return ops.add_scalar(self, other)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+    
+    def __sub__(self, other):
+        if isinstance(other, MetalBuffer):
+            from metal_runtime import ops
+            return ops.sub(self, other)
+        elif isinstance(other, (int, float)):
+            from metal_runtime import ops 
+            return ops.sub_scalar(self, other)
+    
+    def __rsub__(self, other):
+        if isinstance(other, (int, float)):
+            from metal_runtime import ops
+            return ops.rsub_scalar(other, self)
+        return NotImplemented
+    
+    def __truediv__(self, other):
+        if isinstance(other, (int, float)):
+            from metal_runtime import ops
+            return ops.div_scalar(self, other)
+        elif isinstance(other, MetalBuffer):
+            from metal_runtime import ops
+            return ops.div(self, other)
+        return NotImplemented
+    
+    def __rtruediv__(self, other):
+        if isinstance(other, (int, float)):
+            from metal_runtime import ops
+            return ops.rdiv_scalar(other, self)
+        return NotImplemented
+    
+    def __neg__(self):
+        from metal_runtime import ops
+        return ops.neg(self)
+    
+    def __abs__(self):
+        from metal_runtime import ops
+        return ops.abs(self)
+    
+    def exp(self):
+        from metal_runtime import ops
+        return ops.exp(self)
+    
+    def log(self):
+        from metal_runtime import ops
+        return ops.log(self)
+    
+    def sqrt(self):
+        from metal_runtime import ops
+        return ops.sqrt(self)
+    
+    def relu(self):
+        from metal_runtime import ops
+        return ops.relu(self)
+    
+    def sigmoid(self):
+        from metal_runtime import ops
+        return ops.sigmoid(self)
+    
+    def tanh(self):
+        from metal_runtime import ops
+        return ops.tanh(self)
+
 class MetalRuntime:
     _instance: Optional["MetalRuntime"] = None
     def __init__(self):

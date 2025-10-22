@@ -13,3 +13,5 @@ dependencies = [
     "pytest>=8.4.2",
     "typing>=3.10.0.0",
 ]
+[project.scripts]
+iris = "management.cli:main"

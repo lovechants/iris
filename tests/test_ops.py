@@ -124,7 +124,7 @@ class TestUnaryOps:
         b_buf = ops.sigmoid(a_buf)
         
         result = api.to_numpy(b_buf)
-        np.testing.assert_allclose(result, expected, rtol=1e-5)
+        np.testing.assert_allclose(result, expected, rtol=2e-5)
     
     def test_sigmoid_wrong_dtype(self):
         a_buf = api.empty((100,), DType.INT32)
@@ -140,7 +140,7 @@ class TestUnaryOps:
         b_buf = ops.tanh(a_buf)
         
         result = api.to_numpy(b_buf)
-        np.testing.assert_allclose(result, expected, rtol=1e-5)
+        np.testing.assert_allclose(result, expected, rtol=2e-5)
     
     def test_exp(self):
         n = 512

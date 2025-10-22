@@ -36,7 +36,7 @@ def ones(shape: Tuple[int, ...], dtype: DType = DType.FLOAT32) -> MetalBuffer:
     np_array = np.ones(shape, dtype=dtype.to_numpy())
     return _get_runtime().upload(np_array)
 
-def to_numpy(buffer: MetalBuffer) -> MetalBuffer:
+def to_numpy(buffer: MetalBuffer) -> np.ndarray:
     return _get_runtime().download(buffer)
 
 def synchronize():

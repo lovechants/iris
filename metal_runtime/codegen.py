@@ -70,7 +70,8 @@ class MSLCodeGenerator(ast.NodeVisitor):
             else:
                 self.emit(param)
         self.indent_level -= 1
-        self.emit(") }")
+        self.emit(")")
+        self.emit("{")
 
         self.indent_level += 1
         for stmt in node.body:
@@ -118,7 +119,7 @@ class MSLCodeGenerator(ast.NodeVisitor):
                 self.indent_level -= 1
                 self.code_lines[-1] = self.code_lines[-1].rstrip()
                 self.code_lines[-1] += f"{elif_test}) {{"
-                self.indent_level += 1
+                self.indent_level -= 1
                 for stmt in node.orelse[0].body:
                     self.visit(stmt)
                 self.indent_level += 1
