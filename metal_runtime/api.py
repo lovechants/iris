@@ -4,6 +4,14 @@ from typing import Optional, Tuple, Any, List, Callable
 from metal_runtime.runtime import MetalRuntime, get_runtime, MetalBuffer
 from metal_runtime.launcher import KernelLauncher
 from metal_runtime.dtype import DType
+from pathlib import Path
+import json, time
+
+LOG_PATH = Path.home() / ".iris_cache" / "iris_log.jsonl"
+
+def _reset_log():
+    LOG_PATH.parent.mkdir(exist_ok=True)
+    LOG_PATH.write_text("") 
 
 _runtime = None
 _launcher = None
@@ -109,6 +117,24 @@ def launch_kernel(
     source, function_name = _registry.get(name)
     launch(source, function_name, grid, block, args)
 
+
+import json, time
+from pathlib import Path
+
+def log_event(name: str, duration_ms: float, phase: str = "run"):
+    log_dir = Path.home() / ".iris_cache"
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / "iris_log.jsonl"
+    entry = {
+        "timestamp": time.time(),
+        "kernel": name,
+        "time_ms": duration_ms,
+        "phase": phase,
+    }
+    with open(log_file, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
 @contextmanager 
 def persistent_buffers():
     """Context that avoids freeing pooled buffers until exit"""
@@ -119,3 +145,5 @@ def persistent_buffers():
     finally:
         rt._buffer_pool.clear()
         rt._buffer_pool.update(before)
+
+_reset_log()

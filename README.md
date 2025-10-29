@@ -46,20 +46,22 @@ Codegen - Done
 Kernel Lib - Elementwise done (2D + 3D ops supported)
 Presistent Mem Pool - Done
 Profiler - Planned 
-TUI - Planned 
+TUI - Skeleton  
 
 ---
 
 ## Roadmap
 
+Right now we just keep a JIT cache instead of other cache methods.
+The plan is to create an IR for tiling + fusion 
+- for example add -> mul -> relu 
+Then having the compiler know when to tile or allowing for the decorator to look like 
 
-1. **Visual Runtime Inspector**
-   - Lightweight text‑UI (planned Rust tool) for introspection and visualization
 
-2. **Advanced Features**
-   - Graph‑level fusion IR
-   - Vectorized types (`float2`, `float4`)
-   - Shared memory primitives
+```python 
+@kernel(tile=N) # 16 etc 
+    kernel impl 
+```
 
 ---
 
@@ -105,3 +107,16 @@ def add_3d(A, B, C, D, H, W):
         C[idx] = A[idx] + B[idx]
 
 ```
+
+You can also run a small tui visualizer -- for now in a separate terminal / pane 
+
+```bash
+cd iris/tui 
+```
+& 
+
+```Rust
+cargo build 
+cargo run
+```
+

@@ -83,6 +83,13 @@ class KernelLauncher:
         encoder.dispatchThreads_threadsPerThreadgroup_(grid_size, threadgroup_size)
         encoder.endEncoding()
 
+        import time
+        start = time.perf_counter()
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+
+        from metal_runtime.api import log_event
+        log_event(function_name, elapsed_ms, "run")
+
         cmd_buffer.commit()
         cmd_buffer.waitUntilCompleted()
 

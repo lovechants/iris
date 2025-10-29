@@ -21,10 +21,8 @@ class JITCache:
         key = self._key(source, function_name)
 
         if key in self._cache:
-            print(f"[JIT:hit] {function_name}")
             return self._cache[key]
 
-        print(f"[JIT:compile] {function_name}")
         start = time.perf_counter()
         library, error = device.newLibraryWithSource_options_error_(source, None, None)
         end = time.perf_counter()
@@ -34,7 +32,8 @@ class JITCache:
             raise RuntimeError(msg)
 
         self._cache[key] = library
-        print(f"compiled in {(end - start) * 1e3:.3f} ms")
+        from metal_runtime.api import log_event
+        log_event(function_name, (end - start) * 1000.0, "compile")
 
         try:
             cache_file = self._cache_dir / f"{key}.metal"
