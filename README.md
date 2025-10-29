@@ -57,15 +57,48 @@ The plan is to create an IR for tiling + fusion
 - for example add -> mul -> relu 
 Then having the compiler know when to tile or allowing for the decorator to look like 
 
-
 ```python 
 @kernel(tile=N) # 16 etc 
     kernel impl 
 ```
 
+Right now it's missing 
+1. Reduction ops 
+2. broadcasting mismatches
+3. tensor ops (reshape, transpose, view)
+4. no native matmul optimization (shared mem, explict tiling)
+5. no autodiff or grad comp 
+6. no multi-gpu support (not planned)
+7. disk based cache
+
 ---
 
-## Example
+## Considerations (performance)
+
+- discussed already, but matmul is naive and not properly implemented
+- no autotuner for auto block selection 
+
+#### Codegen limitations
+
+- type inference just default forces floats (ambigous cases)
+- threadgroup support not impl 
+- no dead code elemimation of optimization passes
+- compare ops are a brittle right now 
+
+---
+
+## Examples
+
+There's a few selection of examples 
+
+
+```python 
+python -m examples.<example_name>
+
+```
+
+> Don't include .py when running this
+
 
 ```python
 import numpy as np
