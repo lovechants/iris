@@ -2,6 +2,7 @@ import pytest
 from metal_runtime.codegen import generate_msl, MSLCodegenError
 import Metal
 
+
 class TestCodegen:
     def test_simple_add_kernel(self):
         def add(a, b, c, n):
@@ -17,7 +18,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(add, "add", param_types)
-        
+
         assert "#include <metal_stdlib>" in msl
         assert "using namespace metal;" in msl
         assert "kernel void add(" in msl
@@ -42,7 +43,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(mul, "mul", param_types)
-        
+
         assert "kernel void mul(" in msl
         assert "device const float* x" in msl
         assert "device float* y" in msl
@@ -60,7 +61,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(loop_kernel, "loop_kernel", param_types)
-        
+
         assert "for (uint i = 0; i < n; i += 1)" in msl
         assert "out[i] = i;" in msl
 
@@ -76,7 +77,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(loop_kernel, "loop_kernel", param_types)
-        
+
         assert "for (uint i = start; i < end; i += 1)" in msl
 
     def test_if_else(self):
@@ -94,7 +95,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(conditional, "conditional", param_types)
-        
+
         assert "if (x[tid] > threshold)" in msl
         assert "} else {" in msl
         assert "y[tid] = 0;" in msl
@@ -116,7 +117,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(compare, "compare", param_types)
-        
+
         assert "if (a[tid] < b[tid])" in msl
         assert "} else if (a[tid] > b[tid])" in msl or "if (a[tid] > b[tid])" in msl
         assert "} else if (a[tid] == b[tid])" in msl or "if (a[tid] == b[tid])" in msl
@@ -133,7 +134,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(ops, "ops", param_types)
-        
+
         assert "+" in msl
         assert "-" in msl
         assert "*" in msl
@@ -150,7 +151,7 @@ class TestCodegen:
         }
 
         msl = generate_msl(unary, "unary", param_types)
-        
+
         assert "out[tid] = -x[tid];" in msl
 
     def test_missing_param_type(self):

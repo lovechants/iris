@@ -1,9 +1,10 @@
 import Metal
 import struct
-import numpy as np 
+import numpy as np
 from typing import Any, List, Tuple
 from metal_runtime.runtime import MetalRuntime, MetalBuffer
-from metal_runtime.compiler import get_compiler 
+from metal_runtime.compiler import get_compiler
+
 
 class KernelLauncher:
     def __init__(self, runtime: MetalRuntime):
@@ -11,7 +12,9 @@ class KernelLauncher:
         self.compiler = get_compiler()
         self._pipeline_cache = {}
 
-    def _get_pipeline(self, source: str, function_name: str) -> "Metal.MTLComputePipelineState":
+    def _get_pipeline(
+        self, source: str, function_name: str
+    ) -> "Metal.MTLComputePipelineState":
         cache_key = (hash(source), function_name)
         if cache_key in self._pipeline_cache:
             return self._pipeline_cache[cache_key]
@@ -19,18 +22,26 @@ class KernelLauncher:
         library = self.compiler.compile(source, self.runtime.device)
         function = library.newFunctionWithName_(function_name)
         if function is None:
-            raise ValueError(f"Function '{function_name}' not found in compiled library")
+            raise ValueError(
+                f"Function '{function_name}' not found in compiled library"
+            )
 
-        pipeline, error = self.runtime.device.newComputePipelineStateWithFunction_error_(function, None)
+        pipeline, error = (
+            self.runtime.device.newComputePipelineStateWithFunction_error_(
+                function, None
+            )
+        )
 
         if pipeline is None:
-           error_msg = error.localizedDescription() if error else "Unknown error"
-           raise RuntimeError(f"Failed to create pipeline state: {error_msg}")
+            error_msg = error.localizedDescription() if error else "Unknown error"
+            raise RuntimeError(f"Failed to create pipeline state: {error_msg}")
 
         self._pipeline_cache[cache_key] = pipeline
         return pipeline
 
-    def _encode_argument(self, arg: Any, index: int, encoder: "Metal.MTLComputeCommandEncoder"):
+    def _encode_argument(
+        self, arg: Any, index: int, encoder: "Metal.MTLComputeCommandEncoder"
+    ):
         if isinstance(arg, MetalBuffer):
             encoder.setBuffer_offset_atIndex_(arg.buffer, 0, index)
         elif isinstance(arg, int):
@@ -44,14 +55,21 @@ class KernelLauncher:
         else:
             raise TypeError(f"Unsupported argument type: {type(arg)}")
 
-    def launch(self, source: str, function_name: str, grid: Tuple[int, int, int], block: Tuple[int, int, int], args: List[Any]):
+    def launch(
+        self,
+        source: str,
+        function_name: str,
+        grid: Tuple[int, int, int],
+        block: Tuple[int, int, int],
+        args: List[Any],
+    ):
         pipeline = self._get_pipeline(source, function_name)
 
         max_threads = pipeline.maxTotalThreadsPerThreadgroup()
         block_size = block[0] * block[1] * block[2]
         if block_size > max_threads:
             raise ValueError(f"Block size {block_size} exceeds maximum {max_threads}")
-        
+
         cmd_buffer = self.runtime.queue.commandBuffer()
         encoder = cmd_buffer.computeCommandEncoder()
         encoder.setComputePipelineState_(pipeline)

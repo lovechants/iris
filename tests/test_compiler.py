@@ -74,17 +74,19 @@ class TestMetalCompiler:
         assert compiler.cache_dir.exists()
         assert compiler.cache_dir.is_dir()
 
-    @pytest.mark.xfail(reason="Disk based caching not supported -> Todo just fix this and the cache code")
+    @pytest.mark.xfail(
+        reason="Disk based caching not supported -> Todo just fix this and the cache code"
+    )
     def test_cached_file_exists_after_compile(self, compiler, device):
         source_hash = compiler._compute_hash(SIMPLE_KERNEL)
         cached_path = compiler._get_cached_path(source_hash)
-        
+
         compiler.compile(SIMPLE_KERNEL, device)
         assert cached_path.exists()
 
     def test_load_from_cache(self, compiler, device):
         compiler.compile(SIMPLE_KERNEL, device)
         compiler._library_cache.clear()
-        
+
         library = compiler.compile(SIMPLE_KERNEL, device)
         assert library is not None

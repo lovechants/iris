@@ -31,10 +31,7 @@ class TestKernelDecorator:
         assert simple.function_name == "simple"
 
     def test_custom_name(self):
-        @kernel(
-            name="custom_kernel",
-            param_types={"x": "device float*"}
-        )
+        @kernel(name="custom_kernel", param_types={"x": "device float*"})
         def my_func(x):
             pass
 
@@ -87,7 +84,9 @@ class TestKernelDecorator:
         b_buf = api.asarray(b_np)
         c_buf = api.empty((n,), api.DType.FLOAT32)
 
-        api.launch_kernel("vector_add", grid=(n,), block=(128,), args=[a_buf, b_buf, c_buf, n])
+        api.launch_kernel(
+            "vector_add", grid=(n,), block=(128,), args=[a_buf, b_buf, c_buf, n]
+        )
 
         result = api.to_numpy(c_buf)
         np.testing.assert_allclose(result, expected, rtol=1e-5)

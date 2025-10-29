@@ -1,19 +1,22 @@
 from typing import Dict, Any, Callable
-from functools import wraps 
-from metal_runtime.codegen import generate_msl 
-from metal_runtime.api import register_kernel 
+from functools import wraps
+from metal_runtime.codegen import generate_msl
+from metal_runtime.api import register_kernel
+
 
 class KernelFunction:
     def __init__(self, func: Callable, param_types: Dict[str, str], function_name: str):
-        self.func = func 
+        self.func = func
         self.param_types = param_types
         self.function_name = function_name
-        self._msl_source = None 
+        self._msl_source = None
 
     @property
     def msl_source(self) -> str:
         if self._msl_source is None:
-            self._msl_source = generate_msl(self.func, self.function_name, self.param_types)
+            self._msl_source = generate_msl(
+                self.func, self.function_name, self.param_types
+            )
         return self._msl_source
 
     def __call__(self, *args, **kwargs):
@@ -21,6 +24,7 @@ class KernelFunction:
             "Kernel functions cannot be called directly."
             "Use launch_kernel() or launch() to execute on GPU"
         )
+
 
 def kernel(func: Callable = None, **kwargs) -> KernelFunction:
     param_types = kwargs.get("param_types", {})
@@ -34,22 +38,22 @@ def kernel(func: Callable = None, **kwargs) -> KernelFunction:
         kernel_func = KernelFunction(f, param_types, function_name)
         register_kernel(function_name, kernel_func.msl_source, function_name)
         return kernel_func
-    
+
     if func is None:
-        return decorator 
+        return decorator
     else:
         return decorator(func)
 
+
 class metal:
-    @staticmethod 
+    @staticmethod
     def thread_id() -> int:
-        pass 
+        pass
 
     @staticmethod
     def program_id(axis: int = 0) -> int:
-        pass 
-
-    @staticmethod
-    def threadgroup_id(axis:int = 0) -> int:
         pass
 
+    @staticmethod
+    def threadgroup_id(axis: int = 0) -> int:
+        pass

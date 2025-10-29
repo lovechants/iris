@@ -52,6 +52,7 @@ kernel void write_sentinel(
 }
 """
 
+
 class TestKernelLauncher:
     @pytest.fixture
     def runtime(self):
@@ -61,7 +62,7 @@ class TestKernelLauncher:
     def launcher(self, runtime):
         return KernelLauncher(runtime)
 
-    #@pytest.mark.xfail(reason="CPU download is not implemented.")
+    # @pytest.mark.xfail(reason="CPU download is not implemented.")
     def test_simple_add(self, runtime, launcher):
         n = 1024
         a = np.random.randn(n).astype(np.float32)
@@ -83,7 +84,7 @@ class TestKernelLauncher:
         result = runtime.download(c_buf)
         np.testing.assert_allclose(result, expected, rtol=1e-5)
 
-    #@pytest.mark.xfail(reason="CPU download is not implemented.")
+    # @pytest.mark.xfail(reason="CPU download is not implemented.")
     def test_multiply_scalar(self, runtime, launcher):
         n = 512
         a = np.random.randn(n).astype(np.float32)
@@ -127,7 +128,7 @@ class TestKernelLauncher:
                 args=[a_buf, b_buf, c_buf, 100],
             )
 
-    #@pytest.mark.xfail(reason="CPU download is not implemented.")
+    # @pytest.mark.xfail(reason="CPU download is not implemented.")
     def test_different_grid_sizes(self, runtime, launcher):
         sizes = [64, 256, 1024]
         for n in sizes:
@@ -157,14 +158,16 @@ class TestKernelLauncher:
         """
         initial_value = 0.0
         output_buf = runtime.upload(np.full((10,), initial_value, dtype=np.float32))
-        
+
         launcher.launch(
             SENTINEL_KERNEL,
             "write_sentinel",
             grid=(1, 1, 1),
             block=(1, 1, 1),
-            args=[output_buf]
+            args=[output_buf],
         )
-        
+
         result = runtime.peek(output_buf, DType.FLOAT32, index=0)
-        assert result == 12345.0, f"Kernel did not execute correctly. Expected 12345.0, got {result}"
+        assert result == 12345.0, (
+            f"Kernel did not execute correctly. Expected 12345.0, got {result}"
+        )

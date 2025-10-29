@@ -6,6 +6,7 @@ from management.partition_util import partition_1d, explain_partition, print_dev
 print_device_info()
 print()
 
+
 @kernel(
     param_types={
         "a": "device const float*",
@@ -18,6 +19,7 @@ def vector_add(a, b, c, n):
     i = metal.thread_id()
     if i < n:
         c[i] = a[i] + b[i]
+
 
 n = 512
 grid_size, block_size = partition_1d(n)
@@ -35,4 +37,6 @@ a_buf = api.asarray(a_np)
 b_buf = api.asarray(b_np)
 c_buf = api.empty((n,), api.DType.FLOAT32)
 
-api.launch_kernel("vector_add", grid=grid_size, block=block_size, args=[a_buf, b_buf, c_buf, n])
+api.launch_kernel(
+    "vector_add", grid=grid_size, block=block_size, args=[a_buf, b_buf, c_buf, n]
+)

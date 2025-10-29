@@ -1,6 +1,7 @@
-import numpy as np 
+import numpy as np
 from enum import Enum
 from typing import Optional
+
 
 class DType(Enum):
     FLOAT32 = ("float", 4, np.float32)
@@ -24,6 +25,7 @@ class DType(Enum):
     - vector types 
     - complex float 
     """
+
     @staticmethod
     def from_numpy(dtype: np.dtype) -> "DType":
         type_map = {
@@ -34,9 +36,9 @@ class DType(Enum):
             np.int16: DType.INT16,
             np.uint16: DType.UINT16,
             np.int8: DType.INT8,
-            np.uint8: DType.UINT8,               
+            np.uint8: DType.UINT8,
         }
-        np_type = dtype.type 
+        np_type = dtype.type
         if np_type not in type_map:
             raise ValueError(f"Unsupported dtype: {dtype}")
         return type_map[np_type]
@@ -48,6 +50,7 @@ class DType(Enum):
     def itemsize(self) -> int:
         """Return the size in bytes of this data type."""
         return self.size
+
 
 def get_alignment(dtype: DType) -> int:
     return max(dtype.size, 4)

@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from metal_runtime.dtype import DType, get_alignment
 
+
 class TestDType:
     def test_float32_properties(self):
         dt = DType.FLOAT32

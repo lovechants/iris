@@ -1,10 +1,12 @@
 import ast
 import inspect
-from typing import Dict, List, Optional, Set, Callable 
+from typing import Dict, List, Optional, Set, Callable
 import textwrap
+
 
 class MSLCodegenError(Exception):
     pass
+
 
 class TypeInference:
     def __init__(self):
@@ -20,10 +22,11 @@ class TypeInference:
         return "int"
 
     def set_type(self, name: str, typ: str):
-        self.var_types[name] = typ 
+        self.var_types[name] = typ
 
-    def get_type(self, name:str) -> str:
+    def get_type(self, name: str) -> str:
         return self.var_types.get(name, "float")
+
 
 class MSLCodeGenerator(ast.NodeVisitor):
     def __init__(self, function_name: str, param_types: Dict[str, str]):
@@ -40,7 +43,7 @@ class MSLCodeGenerator(ast.NodeVisitor):
 
     def emit(self, line: str):
         self.code_lines.append(self.indent() + line)
-    
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> str:
         self.emit("#include <metal_stdlib>")
         self.emit("using namespace metal;")
@@ -56,11 +59,12 @@ class MSLCodeGenerator(ast.NodeVisitor):
                 elif param_type.startswith("threadgroup"):
                     params.append(f"{param_type} {param_name} [[buffer({i})]]")
                 else:
-                    params.append(f"constant {param_type}& {param_name} [[buffer({i})]]")
+                    params.append(
+                        f"constant {param_type}& {param_name} [[buffer({i})]]"
+                    )
             else:
                 raise MSLCodegenError(f"Unknown type for parameter: {param_name}")
         params.append("uint tid [[thread_position_in_grid]]")
-
 
         self.emit(f"kernel void {self.function_name}(")
         self.indent_level += 1
@@ -90,7 +94,7 @@ class MSLCodeGenerator(ast.NodeVisitor):
 
         if isinstance(target, ast.Name):
             target_name = target.id
-            
+
             if target_name in self.type_inference.var_types:
                 self.emit(f"{target_name} = {value};")
             else:
@@ -99,16 +103,20 @@ class MSLCodeGenerator(ast.NodeVisitor):
                     self.type_inference.set_type(name=target_name, typ="uint")
                     self.emit(f"uint {target_name} = {value};")
                 else:
-                    if isinstance(node.value, ast.Constant) and isinstance(node.value.value, float):
+                    if isinstance(node.value, ast.Constant) and isinstance(
+                        node.value.value, float
+                    ):
                         var_type = "float"
-                    elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, int):
+                    elif isinstance(node.value, ast.Constant) and isinstance(
+                        node.value.value, int
+                    ):
                         var_type = "uint"
                     else:
-                        var_type = "float"  
-                        
+                        var_type = "float"
+
                     self.type_inference.set_type(name=target_name, typ=var_type)
                     self.emit(f"{var_type} {target_name} = {value};")
-                    
+
         elif isinstance(target, ast.Subscript):
             target_code = self.visit(target)
             self.emit(f"{target_code} = {value};")
@@ -147,9 +155,9 @@ class MSLCodeGenerator(ast.NodeVisitor):
                 for stmt in node.orelse:
                     self.visit(stmt)
                 self.indent_level -= 1
-    
+
         self.emit("}")
-    
+
     def visit_For(self, node: ast.For):
         if not isinstance(node.target, ast.Name):
             raise MSLCodegenError("For loop target must be a simple variable")
@@ -175,7 +183,9 @@ class MSLCodeGenerator(ast.NodeVisitor):
         else:
             raise MSLCodegenError("range() must have 1-3 args")
 
-        self.emit(f"for (uint {var_name} = {start}; {var_name} < {end}; {var_name} += {step}){{")
+        self.emit(
+            f"for (uint {var_name} = {start}; {var_name} < {end}; {var_name} += {step}){{"
+        )
         self.indent_level += 1
         for stmt in node.body:
             self.visit(stmt)
@@ -213,14 +223,19 @@ class MSLCodeGenerator(ast.NodeVisitor):
         right = self.visit(node.right)
         op = self.visit(node.op)
         return f"({left} {op} {right})"
-
-    def visit_Compare(self, node: ast.Compare):
-        left = self.visit(node.left)
+    
+    # TODO: In the future this codegen needs to be much more robust to handle the leftside rightside infra 
+    def visit_Compare(self, node: ast.Compare) -> str:
         if len(node.ops) != 1 or len(node.comparators) != 1:
             raise MSLCodegenError("Complex comparisons not yet supported")
 
+        left = self.visit(node.left)
         op = self.visit(node.ops[0])
         right = self.visit(node.comparators[0])
+
+        if isinstance(node.comparators[0], ast.Constant) and isinstance(node.comparators[0].value, (int, bool)):
+            right = f"static_cast<float>({right})"
+        
         return f"{left} {op} {right}"
 
     def visit_Name(self, node: ast.Name):
@@ -280,9 +295,20 @@ class MSLCodeGenerator(ast.NodeVisitor):
     def visit_Not(self, node: ast.Not):
         return "!"
 
-def generate_msl(func: Callable, function_name: str, param_types: Dict[str, str]) -> str:
+    def visit_IfExp(self, node: ast.IfExp) -> str:
+        """Handles inline ternary expressions: a if cond else b"""
+        test = self.visit(node.test)
+        body = self.visit(node.body)
+        orelse = self.visit(node.orelse)
+        return f"(({test}) ? ({body}) : ({orelse}))"
+
+def generate_msl(
+    func: Callable, function_name: str, param_types: Dict[str, str]
+) -> str:
     source = inspect.getsource(func)
-    source = textwrap.dedent(source) # Basically it counted the indentation from the source too so
+    source = textwrap.dedent(
+        source
+    )  # Basically it counted the indentation from the source too so
     tree = ast.parse(source)
     func_def = None
     for node in ast.walk(tree):

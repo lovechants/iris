@@ -1,6 +1,6 @@
 from numpy.testing import assert_
 import pytest
-import numpy as np 
+import numpy as np
 from metal_runtime import api
 from metal_runtime.dtype import DType
 
@@ -21,20 +21,21 @@ kernel void add(
 }
 """
 
+
 class TestAPI:
     def test_asarray(self):
         arr = np.random.randn(100).astype(np.float32)
         buf = api.asarray(arr)
-        assert buf.shape == (100, )
+        assert buf.shape == (100,)
         assert buf.dtype == DType.FLOAT32
 
     def test_empty(self):
-        buf = api.empty((256, ), DType.FLOAT32)
-        assert buf.shape == (256, )
+        buf = api.empty((256,), DType.FLOAT32)
+        assert buf.shape == (256,)
         assert buf.dtype == DType.FLOAT32
 
     def test_empty_like(self):
-        original = api.empty((128, ),DType.FLOAT32)
+        original = api.empty((128,), DType.FLOAT32)
         new_buf = api.empty_like(original)
         assert new_buf.shape == original.shape
         assert new_buf.dtype == original.dtype
@@ -68,7 +69,9 @@ class TestAPI:
         b_buf = api.asarray(b)
         c_buf = api.empty((n,), DType.FLOAT32)
 
-        api.launch(ADD_KERNEL, "add", grid=(n,), block=(128,), args=[a_buf, b_buf, c_buf, n])
+        api.launch(
+            ADD_KERNEL, "add", grid=(n,), block=(128,), args=[a_buf, b_buf, c_buf, n]
+        )
 
         result = api.to_numpy(c_buf)
         np.testing.assert_allclose(result, expected, rtol=1e-5)
@@ -102,12 +105,15 @@ class TestAPI:
         b_buf = api.asarray(b)
         c_buf = api.empty((n,), DType.FLOAT32)
 
-        api.launch_kernel("test_add", grid=(n,), block=(64,), args=[a_buf, b_buf, c_buf, n])
+        api.launch_kernel(
+            "test_add", grid=(n,), block=(64,), args=[a_buf, b_buf, c_buf, n]
+        )
 
         result = api.to_numpy(c_buf)
         np.testing.assert_allclose(result, expected, rtol=1e-5)
 
     pytest.mark.xfail("Not registered kernel")
+
     def test_launch_kernel_not_registered(self):
         with pytest.raises(ValueError, match="not registered"):
             api.launch_kernel("nonexistent", grid=(1,), block=(1,), args=[])

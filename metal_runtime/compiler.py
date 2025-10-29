@@ -4,10 +4,12 @@ import tempfile
 import Metal
 import threading
 from pathlib import Path
-from typing import Optional, Dict 
+from typing import Optional, Dict
+
 
 class CompilationError(Exception):
-    pass 
+    pass
+
 
 class MetalCompiler:
     def __init__(self, cache_dir: Optional[Path] = None):
@@ -35,14 +37,16 @@ class MetalCompiler:
             if library is not None:
                 self._library_cache[source_hash] = library
                 return library
-        
+
         library = self._compile_source(source, device, cached_path)
         self._library_cache[source_hash] = library
         return library
 
-    #TODO Remove the failing cache code at some point was a nice attempt to see just not supported right now
+    # TODO Remove the failing cache code at some point was a nice attempt to see just not supported right now
     # Will just use in memory cache.
-    def _compile_source(self, source: str, device: "Metal.MTLDevice", output_path: Path) -> "Metal.MTLLibrary":
+    def _compile_source(
+        self, source: str, device: "Metal.MTLDevice", output_path: Path
+    ) -> "Metal.MTLLibrary":
         compilation_complete = threading.Event()
         library_result = None
         error_result = None
@@ -51,12 +55,12 @@ class MetalCompiler:
             nonlocal library_result, error_result
             library_result = library
             error_result = error
-            compilation_complete.set() 
+            compilation_complete.set()
 
         device.newLibraryWithSource_options_completionHandler_(
-            source,           # The MSL source code string
-            None,             # MTLCompileOptions (can be None for defaults)
-            completion_handler # The function to call when done
+            source,  # The MSL source code string
+            None,  # MTLCompileOptions (can be None for defaults)
+            completion_handler,  # The function to call when done
         )
 
         if not compilation_complete.wait(timeout=5):
@@ -65,16 +69,22 @@ class MetalCompiler:
         if error_result:
             error_description = error_result.localizedDescription()
             raise CompilationError(f"Metal Compilation Failed:\n{error_description}")
-        
+
         if library_result is None:
-            raise CompilationError("Metal Compilation Failed: Unknown error (library is None).")
+            raise CompilationError(
+                "Metal Compilation Failed: Unknown error (library is None)."
+            )
 
         try:
             library_data = library_result.dataRepresentation()
             if library_data is None:
-                print("Library.dataRepresentation() not returned None. Cannot cache to disk")
+                print(
+                    "Library.dataRepresentation() not returned None. Cannot cache to disk"
+                )
             elif not library_data:
-                print("library.dataRepresentation returned empty data, cannot cache to disk")
+                print(
+                    "library.dataRepresentation returned empty data, cannot cache to disk"
+                )
             else:
                 output_path.write_bytes(library_data)
                 print(f"cached library to {output_path}")
@@ -83,7 +93,9 @@ class MetalCompiler:
 
         return library_result
 
-_compiler_instance: Optional[MetalCompiler] = None 
+
+_compiler_instance: Optional[MetalCompiler] = None
+
 
 def get_compiler() -> MetalCompiler:
     global _compiler_instance
