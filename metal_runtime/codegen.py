@@ -37,6 +37,7 @@ class MSLCodeGenerator(ast.NodeVisitor):
         self.code_lines: List[str] = []
         self.used_builtins: Set[str] = set()
         self.thread_id_var = None
+        self.uses_3d_threads = None
 
     def indent(self) -> str:
         return "    " * self.indent_level
@@ -64,7 +65,34 @@ class MSLCodeGenerator(ast.NodeVisitor):
                     )
             else:
                 raise MSLCodegenError(f"Unknown type for parameter: {param_name}")
-        params.append("uint tid [[thread_position_in_grid]]")
+
+        uses_3d = any(
+            isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr in ("thread_id_z", "thread_id_3d")
+            for n in ast.walk(node)
+        )
+        uses_2d = any(
+            isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr in ("thread_id_x", "thread_id_y", "thread_id_2d")
+            for n in ast.walk(node)
+        )
+
+        if uses_3d:
+            params.append("uint3 tid3d [[thread_position_in_grid]]")
+            self.uses_3d_threads = True
+        elif uses_2d:
+            params.append("uint2 tid2d [[thread_position_in_grid]]")
+            self.uses_3d_threads = False
+        else:
+            params.append("uint tid [[thread_position_in_grid]]")
+            self.uses_3d_threads = False
+
+        for pname, ptype in self.param_types.items():
+            base_type = ptype.split()[-1].replace("&", "").replace("*", "")
+            if "uint" in base_type or "int" in base_type:
+                self.type_inference.set_type(pname, "uint")
 
         self.emit(f"kernel void {self.function_name}(")
         self.indent_level += 1
@@ -91,31 +119,45 @@ class MSLCodeGenerator(ast.NodeVisitor):
 
         target = node.targets[0]
         value = self.visit(node.value)
+        target_name = target.id if isinstance(target, ast.Name) else None
 
         if isinstance(target, ast.Name):
-            target_name = target.id
-
             if target_name in self.type_inference.var_types:
                 self.emit(f"{target_name} = {value};")
-            else:
-                if value == "tid" and self.thread_id_var is None:
-                    self.thread_id_var = target_name
-                    self.type_inference.set_type(name=target_name, typ="uint")
-                    self.emit(f"uint {target_name} = {value};")
-                else:
-                    if isinstance(node.value, ast.Constant) and isinstance(
-                        node.value.value, float
-                    ):
-                        var_type = "float"
-                    elif isinstance(node.value, ast.Constant) and isinstance(
-                        node.value.value, int
-                    ):
-                        var_type = "uint"
-                    else:
-                        var_type = "float"
+                return
 
-                    self.type_inference.set_type(name=target_name, typ=var_type)
-                    self.emit(f"{var_type} {target_name} = {value};")
+            if value == "tid" and self.thread_id_var is None:
+                if target_name != "tid":
+                    self.emit(f"uint {target_name} = tid;")
+                return
+
+            inferred_type = None
+            if isinstance(node.value, ast.Constant):
+                if isinstance(node.value.value, float):
+                    inferred_type = "float"
+                elif isinstance(node.value.value, int):
+                    inferred_type = "uint"
+            else:
+                rhs_vars = [n.id for n in ast.walk(node.value) if isinstance(n, ast.Name)]
+                rhs_types = [self.type_inference.get_type(v) for v in rhs_vars]
+
+                if rhs_types:
+                    if all(t in ("uint", "int") for t in rhs_types):
+                        inferred_type = "uint"
+                    elif any("float" in t for t in rhs_types):
+                        inferred_type = "float"
+                    else:
+                        inferred_type = "float"
+                else:
+                    inferred_type = "float"
+
+            # --- Force integer for index-like variables ---
+            if target_name in ("x", "y", "z", "idx", "row", "col"):
+                inferred_type = "uint"
+
+            var_type = inferred_type or "float"
+            self.type_inference.set_type(target_name, var_type)
+            self.emit(f"{var_type} {target_name} = {value};")
 
         elif isinstance(target, ast.Subscript):
             target_code = self.visit(target)
@@ -197,22 +239,41 @@ class MSLCodeGenerator(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call):
         if isinstance(node.func, ast.Attribute):
-            if node.func.attr == "thread_id":
+            attr = node.func.attr
+
+            if attr == "thread_id":
                 self.used_builtins.add("thread_id")
                 return "tid"
-            elif node.func.attr == "program_id":
+            elif attr == "program_id":
                 self.used_builtins.add("program_id")
                 dim = self.visit(node.args[0]) if node.args else "0"
                 if dim == "0":
                     return "tid"
-                else:
-                    raise MSLCodegenError("Only 1D program_id supproted now")
+                raise MSLCodegenError("Only 1D program_id supported now")
+
+            elif attr == "thread_id_x":
+                self.used_builtins.add("thread_id_x")
+                self.type_inference.set_type("thread_id_x", "uint")
+                return "tid3d.x" if self.uses_3d_threads else "tid2d.x"
+            elif attr == "thread_id_y":
+                self.used_builtins.add("thread_id_y")
+                self.type_inference.set_type("thread_id_y", "uint")
+                return "tid3d.y" if self.uses_3d_threads else "tid2d.y"
+            elif attr == "thread_id_z":
+                self.used_builtins.add("thread_id_z")
+                self.type_inference.set_type("thread_id_z", "uint")
+                return "tid3d.z"
+            elif attr == "thread_id_2d":
+                self.used_builtins.add("thread_id_2d")
+                return "tid2d"
+            elif attr == "thread_id_3d":
+                self.used_builtins.add("thread_id_3d")
+                return "tid3d"
 
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
             if func_name == "range":
                 raise MSLCodegenError("range() should only appear in for loops")
-
             args = [self.visit(arg) for arg in node.args]
             return f"{func_name}({', '.join(args)})"
 
@@ -245,6 +306,10 @@ class MSLCodeGenerator(ast.NodeVisitor):
         operand = self.visit(node.operand)
         op = self.visit(node.op)
         return f"{op}{operand}"
+
+    def visit_BoolOp(self, node: ast.BoolOp):
+        op = " && " if isinstance(node.op, ast.And) else " || "
+        return op.join(self.visit(v) for v in node.values)
 
     def visit_Subscript(self, node: ast.Subscript):
         value = self.visit(node.value)
@@ -295,6 +360,9 @@ class MSLCodeGenerator(ast.NodeVisitor):
     def visit_Not(self, node: ast.Not):
         return "!"
 
+    def visit_FloorDiv(self, node: ast.FloorDiv):
+        return "/"
+
     def visit_IfExp(self, node: ast.IfExp) -> str:
         """Handles inline ternary expressions: a if cond else b"""
         test = self.visit(node.test)
@@ -306,17 +374,24 @@ def generate_msl(
     func: Callable, function_name: str, param_types: Dict[str, str]
 ) -> str:
     source = inspect.getsource(func)
-    source = textwrap.dedent(
-        source
-    )  # Basically it counted the indentation from the source too so
+    source = textwrap.dedent(source)
     tree = ast.parse(source)
+
     func_def = None
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
             func_def = node
             break
     if func_def is None:
-        raise MSLCodegenError("Could not find function defintion")
+        raise MSLCodegenError("Could not find function definition")
+
+    if (
+        func_def.body
+        and isinstance(func_def.body[0], ast.Expr)
+        and isinstance(func_def.body[0].value, ast.Constant)
+        and isinstance(func_def.body[0].value.value, str)
+    ):
+        func_def.body.pop(0)
 
     codegen = MSLCodeGenerator(function_name, param_types)
     return codegen.visit_FunctionDef(func_def)

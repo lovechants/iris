@@ -57,3 +57,24 @@ class metal:
     @staticmethod
     def threadgroup_id(axis: int = 0) -> int:
         pass
+
+
+    @staticmethod
+    def thread_id_x() -> int:
+        pass
+
+    @staticmethod
+    def thread_id_y() -> int:
+        pass
+    
+    @staticmethod
+    def thread_id_2d() -> tuple[int, int]:
+        pass
+    
+    @staticmethod
+    def thread_id_z() -> int:
+        pass
+    
+    @staticmethod
+    def thread_id_3d() -> tuple[int, int, int]:
+        pass

@@ -4,7 +4,7 @@ import numpy as np
 from typing import Any, List, Tuple
 from metal_runtime.runtime import MetalRuntime, MetalBuffer
 from metal_runtime.compiler import get_compiler
-
+from metal_runtime.jit import get_jit_cache
 
 class KernelLauncher:
     def __init__(self, runtime: MetalRuntime):
@@ -19,7 +19,7 @@ class KernelLauncher:
         if cache_key in self._pipeline_cache:
             return self._pipeline_cache[cache_key]
 
-        library = self.compiler.compile(source, self.runtime.device)
+        library = get_jit_cache().compile(source, function_name, self.runtime.device)
         function = library.newFunctionWithName_(function_name)
         if function is None:
             raise ValueError(
