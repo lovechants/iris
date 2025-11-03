@@ -42,10 +42,15 @@ This is **not** a framework clone it's just for fun and potentially hooking into
 ## Development Status
 
 Core runtime - Done 
+
 Codegen - Done 
+
 Kernel Lib - Elementwise done (2D + 3D ops supported)
+
 Presistent Mem Pool - Done
+
 Profiler - Planned 
+
 TUI - Skeleton  
 
 ---
