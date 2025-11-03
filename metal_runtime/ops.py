@@ -6,15 +6,21 @@ from metal_runtime.dtype import DType
 from metal_runtime import api
 import numpy as np
 import ctypes
+from metal_runtime.ir_capture import current, is_capturing
 
 OPS_DIR = Path(__file__).parent / "ops"
-
 
 def _load_kernel_source(filename: str) -> str:
     path = OPS_DIR / filename
     with open(path, "r") as f:
         return f.read()
 
+def _register_operation(op_name: str, inputs: list, result: MetalBuffer, attrs: dict = None):
+    if is_capturing():
+        builder = current()
+        if builder is not None:
+            node = builder.make_node(op_name, inputs, attrs)
+            builder.register(result, node)
 
 ELEMENTWISE_SOURCE = _load_kernel_source("elementwise.metal")
 
@@ -28,7 +34,6 @@ DTYPE_TO_METAL_NAME = {
     DType.INT8: "char",
     DType.UINT8: "uchar",
 }
-
 
 def _elementwise_binary_op(
     a: MetalBuffer,
@@ -63,7 +68,6 @@ def _elementwise_binary_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, b, out, n])
     return out
 
-
 def _unary_op(
     a: MetalBuffer,
     out: Optional[MetalBuffer],
@@ -90,7 +94,6 @@ def _unary_op(
 
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, out, n])
     return out
-
 
 def _scalar_op(
     a: MetalBuffer,
@@ -127,7 +130,6 @@ def _scalar_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, out, scalar_val, n])
     return out
 
-
 def _scalar_right_op(
     scalar: Union[float, int],
     a: MetalBuffer,
@@ -163,7 +165,6 @@ def _scalar_right_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [scalar_val, a, out, n])
     return out
 
-
 def _cast_op(
     a: MetalBuffer,
     out: Optional[MetalBuffer],
@@ -193,7 +194,6 @@ def _cast_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, out, n])
     return out
 
-
 def _get_result_dtype(dtype1: DType, dtype2: DType) -> DType:
     if DType.FLOAT32 in (dtype1, dtype2):
         return DType.FLOAT32
@@ -209,7 +209,6 @@ def _get_result_dtype(dtype1: DType, dtype2: DType) -> DType:
         return DType.UINT16
     return DType.INT8
 
-
 def cast(
     a: MetalBuffer, dtype: DType, out: Optional[MetalBuffer] = None
 ) -> MetalBuffer:
@@ -217,25 +216,33 @@ def cast(
     if a.dtype == dtype:
         return a
 
-    return _cast_op(a, out, a.dtype, dtype)
+    result = _cast_op(a, out, a.dtype, dtype)
+    _register_operation("cast", [a], result, {"dtype": dtype})
+    return result
 
 
 def add(
     a: MetalBuffer, b: MetalBuffer, out: Optional[MetalBuffer] = None
 ) -> MetalBuffer:
-    return _elementwise_binary_op(a, b, out, "add")
+    result = _elementwise_binary_op(a, b, out, "add")
+    _register_operation("add", [a, b], result)
+    return result
 
 
 def sub(
     a: MetalBuffer, b: MetalBuffer, out: Optional[MetalBuffer] = None
 ) -> MetalBuffer:
-    return _elementwise_binary_op(a, b, out, "sub")
+    result = _elementwise_binary_op(a, b, out, "sub")
+    _register_operation("sub", [a, b], result)
+    return result
 
 
 def mul(
     a: MetalBuffer, b: MetalBuffer, out: Optional[MetalBuffer] = None
 ) -> MetalBuffer:
-    return _elementwise_binary_op(a, b, out, "mul")
+    result = _elementwise_binary_op(a, b, out, "mul")
+    _register_operation("mul", [a, b], result)
+    return result
 
 
 def div(
@@ -259,49 +266,67 @@ def div(
             f"Output buffer dtype {out.dtype} does not match expected result dtype {result_dtype}"
         )
 
-    return _elementwise_binary_op(a, b, out, "div")
+    result = _elementwise_binary_op(a, b, out, "div")
+    _register_operation("div", [a, b], result)
+    return result
 
 
 def relu(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
-    return _unary_op(a, out, "relu")
+    result = _unary_op(a, out, "relu")
+    _register_operation("relu", [a], result)
+    return result
 
 
 def sigmoid(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
     if a.dtype not in [DType.FLOAT32, DType.FLOAT16]:
         raise ValueError(f"sigmoid only supports float types, got {a.dtype}")
-    return _unary_op(a, out, "sigmoid")
+    result = _unary_op(a, out, "sigmoid")
+    _register_operation("sigmoid", [a], result)
+    return result
 
 
 def tanh(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
     if a.dtype not in [DType.FLOAT32, DType.FLOAT16]:
         raise ValueError(f"tanh only supports float types, got {a.dtype}")
-    return _unary_op(a, out, "tanh_op")
+    result = _unary_op(a, out, "tanh_op")
+    _register_operation("tanh", [a], result)
+    return result
 
 
 def exp(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
     if a.dtype not in [DType.FLOAT32, DType.FLOAT16]:
         raise ValueError(f"exp only supports float types, got {a.dtype}")
-    return _unary_op(a, out, "exp_op")
+    result = _unary_op(a, out, "exp_op")
+    _register_operation("exp", [a], result)
+    return result
 
 
 def log(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
     if a.dtype not in [DType.FLOAT32, DType.FLOAT16]:
         raise ValueError(f"log only supports float types, got {a.dtype}")
-    return _unary_op(a, out, "log_op")
+    result = _unary_op(a, out, "log_op")
+    _register_operation("log", [a], result)
+    return result
 
 
 def sqrt(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
     if a.dtype not in [DType.FLOAT32, DType.FLOAT16]:
         raise ValueError(f"sqrt only supports float types, got {a.dtype}")
-    return _unary_op(a, out, "sqrt_op")
+    result = _unary_op(a, out, "sqrt_op")
+    _register_operation("sqrt", [a], result)
+    return result
 
 
 def neg(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
-    return _unary_op(a, out, "neg")
+    result = _unary_op(a, out, "neg")
+    _register_operation("neg", [a], result)
+    return result
 
 
 def abs(a: MetalBuffer, out: Optional[MetalBuffer] = None) -> MetalBuffer:
-    return _unary_op(a, out, "abs_op")
+    result = _unary_op(a, out, "abs_op")
+    _register_operation("abs", [a], result)
+    return result
 
 
 def mul_scalar(
@@ -310,7 +335,9 @@ def mul_scalar(
     if a.dtype == DType.FLOAT16 and isinstance(scalar, float):
         scalar = float(scalar)
 
-    return _scalar_op(a, scalar, out, "mul_scalar")
+    result = _scalar_op(a, scalar, out, "mul_scalar")
+    _register_operation("mul_scalar", [a], result, {"scalar": scalar})
+    return result
 
 
 def add_scalar(
@@ -319,7 +346,9 @@ def add_scalar(
     if a.dtype == DType.FLOAT16 and isinstance(scalar, float):
         scalar = float(scalar)
 
-    return _scalar_op(a, scalar, out, "add_scalar")
+    result = _scalar_op(a, scalar, out, "add_scalar")
+    _register_operation("add_scalar", [a], result, {"scalar": scalar})
+    return result
 
 
 def sub_scalar(
@@ -328,7 +357,9 @@ def sub_scalar(
     if a.dtype == DType.FLOAT16 and isinstance(scalar, float):
         scalar = float(scalar)
 
-    return _scalar_op(a, scalar, out, "sub_scalar")
+    result = _scalar_op(a, scalar, out, "sub_scalar")
+    _register_operation("sub_scalar", [a], result, {"scalar": scalar})
+    return result
 
 
 def rsub_scalar(
@@ -337,7 +368,9 @@ def rsub_scalar(
     if a.dtype == DType.FLOAT16 and isinstance(scalar, float):
         scalar = float(scalar)
 
-    return _scalar_right_op(scalar, a, out, "rsub_scalar")
+    result = _scalar_right_op(scalar, a, out, "rsub_scalar")
+    _register_operation("rsub_scalar", [a], result, {"scalar": scalar})
+    return result
 
 
 def div_scalar(
@@ -371,6 +404,7 @@ def div_scalar(
     launch(
         ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, out, scalar_val, a.numel]
     )
+    _register_operation("div_scalar", [a], out, {"scalar": scalar})
     return out
 
 
@@ -405,4 +439,5 @@ def rdiv_scalar(
     launch(
         ELEMENTWISE_SOURCE, templated_kernel, grid, block, [scalar_val, a, out, a.numel]
     )
+    _register_operation("rdiv_scalar", [a], out, {"scalar": scalar})
     return out
