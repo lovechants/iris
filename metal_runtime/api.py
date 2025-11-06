@@ -147,3 +147,65 @@ def persistent_buffers():
         rt._buffer_pool.update(before)
 
 _reset_log()
+@contextmanager
+def fused():
+    """
+    Automatically fuse operations into optimized kernels.
+    
+    Example:
+        with api.fused():
+            c = ops.add(a, b)
+            d = ops.mul_scalar(c, 2.0)
+            e = ops.relu(d)
+        # Automatically fused and executed
+    """
+    from metal_runtime.ir_capture import capture
+    from metal_runtime.fusion import fuse
+    from metal_runtime.executor import execute
+    import time
+    
+    t_start = time.perf_counter()
+    
+    with capture() as builder:
+        t_capture_start = time.perf_counter()
+        yield
+        t_capture_end = time.perf_counter()
+        
+        if not builder.graph.outputs:
+            for node in builder.graph.nodes:
+                if not node.users and node.op != "input":
+                    builder.graph.outputs.append(node)
+        
+        if not builder.graph.outputs:
+            return
+        
+        t_fuse_start = time.perf_counter()
+        fused_graph = fuse(builder.graph)
+        t_fuse_end = time.perf_counter()
+        
+        t_input_start = time.perf_counter()
+        # Use the node_map stored in the fused graph
+        node_map = getattr(fused_graph, '_node_map', {})
+        
+        # Use the direct mapping from builder
+        inputs = {}
+        for orig_node, buf in builder.node_to_buf.items():
+            if orig_node.id in node_map:
+                inputs[node_map[orig_node.id]] = buf
+        t_input_end = time.perf_counter()
+        
+        # Add synchronization before timing execution
+        synchronize()
+        t_exec_start = time.perf_counter()
+        execute(fused_graph, inputs)
+        # Add synchronization after execution to ensure it completes
+        synchronize()
+        t_exec_end = time.perf_counter()
+    
+    t_total = time.perf_counter() - t_start
+    
+    print(f"  [PROFILE] Capture overhead: {(t_capture_end - t_capture_start)*1000:.2f} ms")
+    print(f"  [PROFILE] Fusion pass: {(t_fuse_end - t_fuse_start)*1000:.2f} ms")
+    print(f"  [PROFILE] Input collection: {(t_input_end - t_input_start)*1000:.2f} ms")
+    print(f"  [PROFILE] Execute: {(t_exec_end - t_exec_start)*1000:.2f} ms")
+    print(f"  [PROFILE] Total overhead: {t_total*1000:.2f} ms")
