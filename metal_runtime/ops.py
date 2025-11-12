@@ -10,17 +10,22 @@ from metal_runtime.ir_capture import current, is_capturing
 
 OPS_DIR = Path(__file__).parent / "ops"
 
+
 def _load_kernel_source(filename: str) -> str:
     path = OPS_DIR / filename
     with open(path, "r") as f:
         return f.read()
 
-def _register_operation(op_name: str, inputs: list, result: MetalBuffer, attrs: dict = None):
+
+def _register_operation(
+    op_name: str, inputs: list, result: MetalBuffer, attrs: dict = None
+):
     if is_capturing():
         builder = current()
         if builder is not None:
             node = builder.make_node(op_name, inputs, attrs)
             builder.register(result, node)
+
 
 ELEMENTWISE_SOURCE = _load_kernel_source("elementwise.metal")
 
@@ -34,6 +39,7 @@ DTYPE_TO_METAL_NAME = {
     DType.INT8: "char",
     DType.UINT8: "uchar",
 }
+
 
 def _elementwise_binary_op(
     a: MetalBuffer,
@@ -68,6 +74,7 @@ def _elementwise_binary_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, b, out, n])
     return out
 
+
 def _unary_op(
     a: MetalBuffer,
     out: Optional[MetalBuffer],
@@ -94,6 +101,7 @@ def _unary_op(
 
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, out, n])
     return out
+
 
 def _scalar_op(
     a: MetalBuffer,
@@ -130,6 +138,7 @@ def _scalar_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, out, scalar_val, n])
     return out
 
+
 def _scalar_right_op(
     scalar: Union[float, int],
     a: MetalBuffer,
@@ -165,6 +174,7 @@ def _scalar_right_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [scalar_val, a, out, n])
     return out
 
+
 def _cast_op(
     a: MetalBuffer,
     out: Optional[MetalBuffer],
@@ -194,6 +204,7 @@ def _cast_op(
     launch(ELEMENTWISE_SOURCE, templated_kernel, grid, block, [a, out, n])
     return out
 
+
 def _get_result_dtype(dtype1: DType, dtype2: DType) -> DType:
     if DType.FLOAT32 in (dtype1, dtype2):
         return DType.FLOAT32
@@ -209,6 +220,7 @@ def _get_result_dtype(dtype1: DType, dtype2: DType) -> DType:
         return DType.UINT16
     return DType.INT8
 
+
 def cast(
     a: MetalBuffer, dtype: DType, out: Optional[MetalBuffer] = None
 ) -> MetalBuffer:
@@ -222,32 +234,49 @@ def cast(
 
 
 def add(
-    a: MetalBuffer, b: MetalBuffer, out: Optional[MetalBuffer] = None
+    a: MetalBuffer,
+    b: Union[MetalBuffer, float, int],
+    out: Optional[MetalBuffer] = None,
 ) -> MetalBuffer:
+    if isinstance(b, (float, int)):
+        return add_scalar(a, b, out)
     result = _elementwise_binary_op(a, b, out, "add")
     _register_operation("add", [a, b], result)
     return result
 
 
 def sub(
-    a: MetalBuffer, b: MetalBuffer, out: Optional[MetalBuffer] = None
+    a: MetalBuffer,
+    b: Union[MetalBuffer, float, int],
+    out: Optional[MetalBuffer] = None,
 ) -> MetalBuffer:
+    if isinstance(b, (float, int)):
+        return sub_scalar(a, b, out)
     result = _elementwise_binary_op(a, b, out, "sub")
     _register_operation("sub", [a, b], result)
     return result
 
 
 def mul(
-    a: MetalBuffer, b: MetalBuffer, out: Optional[MetalBuffer] = None
+    a: MetalBuffer,
+    b: Union[MetalBuffer, float, int],
+    out: Optional[MetalBuffer] = None,
 ) -> MetalBuffer:
+    if isinstance(b, (float, int)):
+        return mul_scalar(a, b, out)
     result = _elementwise_binary_op(a, b, out, "mul")
     _register_operation("mul", [a, b], result)
     return result
 
 
 def div(
-    a: MetalBuffer, b: MetalBuffer, out: Optional[MetalBuffer] = None
+    a: MetalBuffer,
+    b: Union[MetalBuffer, float, int],
+    out: Optional[MetalBuffer] = None,
 ) -> MetalBuffer:
+    if isinstance(b, (float, int)):
+        return div_scalar(a, b, out)
+
     result_dtype = (
         DType.FLOAT32
         if a.dtype.itemsize >= 4 or b.dtype.itemsize >= 4

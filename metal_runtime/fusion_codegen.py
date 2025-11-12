@@ -6,7 +6,9 @@ def generate_fused(node: IRNode) -> tuple[str, str]:
     ops = node.attrs["ops"]
     attrs_list = node.attrs["attrs"]
     dtype_map = {DType.FLOAT32: "float", DType.FLOAT16: "half"}
-    metal_type = dtype_map[node.dtype]
+    
+    # Default to float32 if dtype is None
+    metal_type = dtype_map.get(node.dtype, "float")
     
     ops_str = "_".join(ops)
     kernel_hash = hashlib.sha256(ops_str.encode()).hexdigest()[:8]
@@ -22,7 +24,7 @@ def generate_fused(node: IRNode) -> tuple[str, str]:
     
     scalar_map = {}
     for i, (op, attrs) in enumerate(zip(ops, attrs_list)):
-        if "scalar" in op and "scalar" in attrs:
+        if "scalar" in attrs:
             scalar_map[i] = buf_idx
             kernel += f"    constant {metal_type}& s{i} [[buffer({buf_idx})]],\n"
             buf_idx += 1
@@ -40,12 +42,16 @@ def generate_fused(node: IRNode) -> tuple[str, str]:
     
     for i, (op, attrs) in enumerate(zip(ops, attrs_list)):
         if op == "add":
-            if i == 0 and len(node.inputs) > 1:
+            if "scalar" in attrs:
+                kernel += f"        val = val + s{i};\n"
+            elif i == 0 and len(node.inputs) > 1:
                 kernel += f"        val = val + in1[tid];\n"
             else:
                 kernel += f"        val = val + in0[tid];\n"
         elif op == "mul":
-            if i == 0 and len(node.inputs) > 1:
+            if "scalar" in attrs:
+                kernel += f"        val = val * s{i};\n"
+            elif i == 0 and len(node.inputs) > 1:
                 kernel += f"        val = val * in1[tid];\n"
             else:
                 kernel += f"        val = val * in0[tid];\n"
