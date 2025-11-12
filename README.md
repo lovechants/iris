@@ -96,13 +96,25 @@ Right now it's missing
 
 There's a few selection of examples 
 
+> Now there are more than a few examples some are mostly focused on proper development but here is the standout examples 
+
+/examples
+├── 2dmm.py                   # 2D matmul example
+├── 3dadd.py                  # 3D indexing demo
+├── elementwise.py            # Pre-built ops
+├── fusion_demo.py            # The simple fusion `with api.fused()`
+├── layer_norm.py             # Proper end to end example  
+├── mat_mul.py                # Snall verifiable matmul
+├── tui_demo.py               # Shows off the Rust TUI capabilities (early demo)
+├── vector_add.py             # The "Hello, World!" of @kernel
+└── persistent_buffers.py     # See persistent buffers working / mem management 
 
 ```python 
 python -m examples.<example_name>
 
 ```
 
-> Don't include .py when running this
+> Don't include .py when running with the -m flag
 
 
 ```python
@@ -146,7 +158,26 @@ def add_3d(A, B, C, D, H, W):
 
 ```
 
+## TUI 
+
 You can also run a small tui visualizer -- for now in a separate terminal / pane 
+
+#### Using the TUI 
+
+Keyboard Controls
+q - quit 
+r - reset the log file 
+s - cycle through sort modes 
+f - cycle through phase filters (none -> run -> compile -> hit -> none)
+
+View Modes 
+1 - Timeline view 
+2 - Stats view 
+3 - Kernel details view 
+4 - Memory view 
+
+Navigation 
+Up/Down (Arrows) - Move selection of kernels 
 
 ```bash
 cd iris/tui 
