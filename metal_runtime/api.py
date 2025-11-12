@@ -164,12 +164,12 @@ def fused():
     from metal_runtime.executor import execute
     import time
     
-    t_start = time.perf_counter()
+    # t_start = time.perf_counter()
     
     with capture() as builder:
-        t_capture_start = time.perf_counter()
+        # t_capture_start = time.perf_counter()
         yield
-        t_capture_end = time.perf_counter()
+        # t_capture_end = time.perf_counter()
         
         if not builder.graph.outputs:
             for node in builder.graph.nodes:
@@ -178,34 +178,36 @@ def fused():
         
         if not builder.graph.outputs:
             return
-        
-        t_fuse_start = time.perf_counter()
+        # print(f"Original graph nodes: {len(builder.graph.nodes)}")
+        # print(f"Original graph outputs: {len(builder.graph.outputs)}")
+        # t_fuse_start = time.perf_counter()
         fused_graph = fuse(builder.graph)
-        t_fuse_end = time.perf_counter()
+
+        # print(f"Fused graph nodes: {len(fused_graph.nodes)}")
+        # print(f"Fused graph outputs: {len(fused_graph.outputs)}")
+        # print(f"Fused graph has _node_map: {hasattr(fused_graph, '_node_map')}")
+
+        # if hasattr(fused_graph, '_node_map'):
+        #     print(f"Node map entries: {len(fused_graph._node_map)}")
+            # for old_id, new_node in fused_graph._node_map.items():
+            #     print(f"  {old_id} -> {new_node.id} ({new_node.op})")
+        # t_fuse_end = time.perf_counter()
         
-        t_input_start = time.perf_counter()
-        # Use the node_map stored in the fused graph
+        # t_input_start = time.perf_counter()
         node_map = getattr(fused_graph, '_node_map', {})
         
-        # Use the direct mapping from builder
         inputs = {}
         for orig_node, buf in builder.node_to_buf.items():
             if orig_node.id in node_map:
                 inputs[node_map[orig_node.id]] = buf
-        t_input_end = time.perf_counter()
+        # t_input_end = time.perf_counter()
         
-        # Add synchronization before timing execution
         synchronize()
-        t_exec_start = time.perf_counter()
+        # t_exec_start = time.perf_counter()
         execute(fused_graph, inputs)
-        # Add synchronization after execution to ensure it completes
         synchronize()
-        t_exec_end = time.perf_counter()
+        # t_exec_end = time.perf_counter()
     
-    t_total = time.perf_counter() - t_start
+    # t_total = time.perf_counter() - t_start
     
-    print(f"  [PROFILE] Capture overhead: {(t_capture_end - t_capture_start)*1000:.2f} ms")
-    print(f"  [PROFILE] Fusion pass: {(t_fuse_end - t_fuse_start)*1000:.2f} ms")
-    print(f"  [PROFILE] Input collection: {(t_input_end - t_input_start)*1000:.2f} ms")
-    print(f"  [PROFILE] Execute: {(t_exec_end - t_exec_start)*1000:.2f} ms")
-    print(f"  [PROFILE] Total overhead: {t_total*1000:.2f} ms")
+

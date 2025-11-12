@@ -86,9 +86,45 @@ impl App {
         }
     }
     
+    // Just fix the way logging is on the python side at somepoint -- for now this will do 
+    // TODO ^^ please actually fix this proper  
+    fn looks_like_message(record: &Record) -> bool {
+        let kernel = record.kernel.trim();
+        if kernel.is_empty() {
+            return true;
+        }
+        if kernel.contains(' ') || kernel.contains('\t') {
+            return true;
+        }
+        let lower = kernel.to_lowercase();
+        const BAD_KEYWORDS: [&str; 7] = [
+            "took", "ms", "avg", "execution", "verify", "correctness", "profile",
+        ];
+        if BAD_KEYWORDS.iter().any(|kw| lower.contains(kw)) {
+            return true;
+        }
+        if record.time_ms == 0.0 {
+            return true;
+        }
+        if record.kernel_type.is_some() {
+            return false;
+        }
+        if kernel.chars().any(|c| c == '_')
+            && !kernel.chars().any(|c| c.is_whitespace())
+        {
+            return false;
+        }
+
+        true
+    }
+    
     fn filtered_records(&self) -> Vec<&Record> {
         self.records.iter()
             .filter(|r| {
+
+                if Self::looks_like_message(r) {
+                    return false;
+                }
                 // Apply phase filter
                 if let Some(phase) = &self.filter_phase {
                     if r.phase != *phase {
@@ -102,6 +138,8 @@ impl App {
                         return false;
                     }
                 }
+
+                
                 
                 true
             })
