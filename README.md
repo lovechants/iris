@@ -15,6 +15,8 @@ code generation for elementwise operators.
 
 This is **not** a framework clone it's just for fun and potentially hooking into julia (framework).
 
+Write up pre-IR graph can be found @ imfindingithard.com
+
 ---
 
 ## Capabilities
@@ -43,15 +45,37 @@ This is **not** a framework clone it's just for fun and potentially hooking into
 
 Core runtime - Done 
 
+Reduction ops - Done 
+
+Scatter + Gather - Done 
+
 Codegen - Done 
 
 Kernel Lib - Elementwise done (2D + 3D ops supported)
 
 Presistent Mem Pool - Done
 
-Profiler - Planned 
+Profiler - Done  
 
-TUI - Skeleton  
+TUI - Done  
+
+IR Graph - Done 
+
+Fusion - Done 
+
+Tiling - In progress 
+
+Auto Tuner - In progress 
+- This updates some of the capabilities of the decorator too
+
+Kernel Translation - Planned 
+
+Kernel Exceution Traces - Planned 
+
+Broadcasting - Planned  
+
+Dead Code Elimination - Planned 
+- Further optimization passes - Planned
 
 ---
 
@@ -61,6 +85,7 @@ Right now we just keep a JIT cache instead of other cache methods.
 The plan is to create an IR for tiling + fusion 
 - for example add -> mul -> relu 
 Then having the compiler know when to tile or allowing for the decorator to look like 
+> 15 Nov, 2025 IR graph & fusion are done working tiling now.
 
 ```python 
 @kernel(tile=N) # 16 etc 
@@ -68,11 +93,14 @@ Then having the compiler know when to tile or allowing for the decorator to look
 ```
 
 Right now it's missing 
-1. Reduction ops 
+
+> Cross reference with roadmap
+
+1. Reduction ops DONE
 2. broadcasting mismatches
 3. tensor ops (reshape, transpose, view)
-4. no native matmul optimization (shared mem, explict tiling)
-5. no autodiff or grad comp 
+4. no native matmul optimization (shared mem, explict tiling) - In progress
+5. no autodiff or grad comp - See JULIA 
 6. no multi-gpu support (not planned)
 7. disk based cache
 
@@ -82,6 +110,7 @@ Right now it's missing
 
 - discussed already, but matmul is naive and not properly implemented
 - no autotuner for auto block selection 
+> These are currently in progress
 
 #### Codegen limitations
 
